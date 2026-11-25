@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>아케이드 스네이크 게임</title>
+  <style>
+    /* =========================================
+       1. 기본 변수 및 초기화 스타일
+       ========================================= */
+    :root {
+      --bg-main: #090d16;
+      --bg-panel: #111827;
+      --bg-board: #0f172a;
+      --grid-line: rgba(148, 163, 184, 0.08);
+      --border-subtle: rgba(148, 163, 184, 0.18);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent-green: #22c55e;
+      --accent-green-glow: rgba(34, 197, 94, 0.45);
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-blue: #3b82f6;
+      --btn-bg: #1e293b;
+      --btn-hover: #334155;
+      --btn-active: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #131c31 0%, var(--bg-main) 75%);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: manipulation;
+    }
+
+    /* =========================================
+       2. 메인 레이아웃 컨테이너
+       ========================================= */
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      height: 100dvh;
+      max-height: 860px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* =========================================
+       3. 상단 헤더 & 점수판 & 난이도 선택
+       ========================================= */
+    .top-section {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 8px 14px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+
+    .game-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent-green);
+      text-shadow: 0 0 12px var(--accent-green-glow);
+    }
+
+    .score-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .score-box {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .score-label {
+      font-size: 0.68rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .score-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+
+    #currentScore {
+      color: #4ade80;
+    }
+
+    #highScore {
+      color: #fbbf24;
+    }
+
+    /* 난이도 & 컨트롤 버튼 행 */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .difficulty-group {
+      display: flex;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .diff-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 9px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .diff-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .diff-btn.active {
+      background: var(--accent-green);
+      color: #052e16;
+      box-shadow: 0 2px 8px var(--accent-green-glow);
+    }
+
+    .action-group {
+      display: flex;
+      gap: 5px;
+    }
+
+    .ctrl-btn {
+      background: var(--btn-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .ctrl-btn:hover:not(:disabled) {
+      background: var(--btn-hover);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .ctrl-btn:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    .ctrl-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .ctrl-btn.primary {
+      background: var(--accent-green);
+      color: #052e16;
+      border-color: #4ade80;
+    }
+
+    .ctrl-btn.primary:hover:not(:disabled) {
+      background: #4ade80;
+    }
+
+    .ctrl-btn.warning {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.45);
+    }
+
+    /* =========================================
+       4. 중앙 게임 캔버스 영역
+       ========================================= */
+    .board-wrapper {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .canvas-frame {
+      position: relative;
+      border-radius: 16px;
+      padding: 4px;
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      border: 2px solid rgba(34, 197, 94, 0.35);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 24px rgba(34, 197, 94, 0.12);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      display: block;
+      background-color: var(--bg-board);
+      border-radius: 12px;
+    }
+
+    /* 캔버스 상태 오버레이 (대기, 일시정지, 게임오버) */
+    .overlay {
+      position: absolute;
+      inset: 4px;
+      border-radius: 12px;
+      background: rgba(9, 13, 22, 0.82);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      gap: 12px;
+      z-index: 10;
+      transition: opacity 0.2s ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .overlay-badge {
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.18);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+
+    .overlay-badge.danger {
+      background: rgba(239, 68, 68, 0.18);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .overlay-title {
+      font-size: 1.55rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .overlay-desc {
+      font-size: 0.86rem;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      max-width: 260px;
+    }
+
+    .overlay-score {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fbbf24;
+      background: rgba(251, 191, 36, 0.12);
+      padding: 6px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .overlay-btn {
+      margin-top: 4px;
+      padding: 11px 24px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #052e16;
+      cursor: pointer;
+      box-shadow: 0 6px 18px var(--accent-green-glow);
+      transition: transform 0.12s ease, filter 0.15s ease;
+    }
+
+    .overlay-btn:hover {
+      filter: brightness(1.08);
+    }
+
+    .overlay-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* =========================================
+       5. 하단 아케이드 터치 방향패드 (D-Pad)
+       ========================================= */
+    .controls-section {
+      width: 100%;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding-bottom: env(safe-area-inset-bottom, 2px);
+    }
+
+    .dpad-container {
+      display: grid;
+      grid-template-columns: repeat(3, 64px);
+      grid-template-rows: repeat(2, 54px);
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .dpad-btn {
+      width: 100%;
+      height: 100%;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 4px 0 #060911, 0 6px 12px rgba(0, 0, 0, 0.4);
+      color: var(--text-primary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform 0.06s ease, background 0.1s ease, border-color 0.1s ease;
+    }
+
+    .dpad-btn svg {
+      width: 26px;
+      height: 26px;
+      stroke: currentColor;
+      stroke-width: 2.6;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .dpad-btn:active,
+    .dpad-btn.pressed {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #060911, 0 2px 6px rgba(0, 0, 0, 0.4);
+      background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+      color: #052e16;
+      border-color: #4ade80;
+    }
+
+    .dpad-up {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .dpad-left {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .dpad-down {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .dpad-right {
+      grid-column: 3;
+      grid-row: 2;
+    }
+
+    .helper-hint {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    /* =========================================
+       6. 반응형 미디어 쿼리 (작은 모바일 & 데스크탑 대응)
+       ========================================= */
+    @media (max-height: 680px) {
+      .app-container {
+        padding: 6px 10px;
+        gap: 5px;
+      }
+      .header-bar {
+        padding: 6px 10px;
+      }
+      .dpad-container {
+        grid-template-columns: repeat(3, 58px);
+        grid-template-rows: repeat(2, 46px);
+        gap: 6px;
+      }
+      .helper-hint {
+        display: none;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .app-container {
+        max-width: 520px;
+        padding: 16px 20px;
+        gap: 12px;
+      }
+      .game-title {
+        font-size: 1.25rem;
+      }
+      .dpad-container {
+        grid-template-columns: repeat(3, 68px);
+        grid-template-rows: repeat(2, 54px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-container">
+    <!-- 상단 정보 및 제어 영역 -->
+    <section class="top-section">
+      <header class="header-bar">
+        <div class="game-title">
+          <span>🐍</span>
+          <span>SNAKE ARCADE</span>
+        </div>
+        <div class="score-group">
+          <div class="score-box">
+            <span class="score-label">현재 점수</span>
+            <span class="score-value" id="currentScore">0</span>
+          </div>
+          <div class="score-box">
+            <span class="score-label">최고 점수</span>
+            <span class="score-value" id="highScore">0</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <!-- 난이도 선택 버튼 -->
+        <div class="difficulty-group" role="group" aria-label="난이도 선택">
+          <button type="button" class="diff-btn" data-speed="160">쉬움</button>
+          <button type="button" class="diff-btn active" data-speed="110">보통</button>
+          <button type="button" class="diff-btn" data-speed="72">어려움</button>
+        </div>
+
+        <!-- 게임 제어 버튼 -->
+        <div class="action-group">
+          <button type="button" class="ctrl-btn primary" id="startBtn">게임 시작</button>
+          <button type="button" class="ctrl-btn warning" id="pauseBtn" disabled>일시정지</button>
+          <button type="button" class="ctrl-btn" id="restartBtn">다시 시작</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 중앙 20x20 게임 캔버스 영역 -->
+    <section class="board-wrapper" id="boardWrapper">
+      <div class="canvas-frame">
+        <canvas id="gameCanvas" aria-label="스네이크 게임 보드"></canvas>
+
+        <!-- 상태 안내 오버레이 -->
+        <div class="overlay" id="gameOverlay">
+          <span class="overlay-badge" id="overlayBadge">READY</span>
+          <h2 class="overlay-title" id="overlayTitle">스네이크 게임</h2>
+          <p class="overlay-desc" id="overlayDesc">
+            방향키 또는 아래 터치 버튼으로<br />초록색 뱀을 조종해 먹이를 획득하세요!
+          </p>
+          <div class="overlay-score" id="overlayScore" style="display: none;">최종 점수: 0점</div>
+          <button type="button" class="overlay-btn" id="overlayActionBtn">게임 시작하기</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 하단 터치 방향키 (스마트폰/태블릿 및 마우스 조작 지원) -->
+    <section class="controls-section">
+      <div class="dpad-container" aria-label="방향 조작 패드">
+        <button type="button" class="dpad-btn dpad-up" data-dir="UP" aria-label="위로 이동">
+          <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"></polyline></svg>
+        </button>
+        <button type="button" class="dpad-btn dpad-left" data-dir="LEFT" aria-label="왼쪽으로 이동">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <button type="button" class="dpad-btn dpad-down" data-dir="DOWN" aria-label="아래로 이동">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <button type="button" class="dpad-btn dpad-right" data-dir="RIGHT" aria-label="오른쪽으로 이동">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+      <p class="helper-hint">PC: 방향키(↑↓←→) / 스페이스바(일시정지) · 모바일: 터치 버튼</p>
+    </section>
+  </main>
+
+  <script>
+    /**
+     * 아케이드 스네이크 게임 로직
+     * - 20x20 격자 기반 렌더링
+     * - 2단계 입력 큐(Input Queue)를 적용하여 빠른 연속 입력 및 반대 방향 입력 시 오작동 방지
+     * - requestAnimationFrame 기반 고정 틱(Fixed Timestep) 이동 루프
+     */
+    (function () {
+      'use strict';
+
+      // =========================================
+      // 1. 게임 상수 및 DOM 요소 참조
+      // =========================================
+      const GRID_SIZE = 20; // 20x20 격자
+      const POINTS_PER_FOOD = 10; // 먹이당 점수
+      const STORAGE_KEY = 'arcade_snake_high_score_v1';
+
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const boardWrapper = document.getElementById('boardWrapper');
+
+      const currentScoreEl = document.getElementById('currentScore');
+      const highScoreEl = document.getElementById('highScore');
+
+      const startBtn = document.getElementById('startBtn');
+      const pauseBtn = document.getElementById('pauseBtn');
+      const restartBtn = document.getElementById('restartBtn');
+      const diffButtons = document.querySelectorAll('.diff-btn');
+      const dpadButtons = document.querySelectorAll('.dpad-btn');
+
+      const gameOverlay = document.getElementById('gameOverlay');
+      const overlayBadge = document.getElementById('overlayBadge');
+      const overlayTitle = document.getElementById('overlayTitle');
+      const overlayDesc = document.getElementById('overlayDesc');
+      const overlayScore = document.getElementById('overlayScore');
+      const overlayActionBtn = document.getElementById('overlayActionBtn');
+
+      // 방향 벡터 정의
+      const DIRECTIONS = {
+        UP: { x: 0, y: -1, opposite: 'DOWN' },
+        DOWN: { x: 0, y: 1, opposite: 'UP' },
+        LEFT: { x: -1, y: 0, opposite: 'RIGHT' },
+        RIGHT: { x: 1, y: 0, opposite: 'LEFT' }
+      };
+
+      // =========================================
+      // 2. 게임 상태 관리 객체
+      // =========================================
+      const state = {
+        status: 'READY', // 'READY' | 'PLAYING' | 'PAUSED' | 'GAMEOVER'
+        snake: [],
+        currentDir: 'RIGHT',
+        inputQueue: [], // 연속 키 입력 버퍼 (최대 2개 저장)
+        food: { x: 14, y: 10 },
+        score: 0,
+        highScore: 0,
+        tickInterval: 110, // 기본 보통 난이도 (ms)
+        lastTickTime: 0,
+        animationFrameId: null,
+        pulsePhase: 0 // 먹이 반짝임 애니메이션 위상
+      };
+
+      // =========================================
+      // 3. 로컬 스토리지 최고 점수 불러오기 / 저장
+      // =========================================
+      function loadHighScore() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          state.highScore = saved ? parseInt(saved, 10) || 0 : 0;
+        } catch (e) {
+          state.highScore = 0;
+        }
+        highScoreEl.textContent = state.highScore;
+      }
+
+      function saveHighScore(newScore) {
+        if (newScore > state.highScore) {
+          state.highScore = newScore;
+          highScoreEl.textContent = state.highScore;
+          try {
+            localStorage.setItem(STORAGE_KEY, String(state.highScore));
+          } catch (e) {
+            // 프라이빗 모드 등 스토리지 제한 환경 무시
+          }
+        }
+      }
+
+      // =========================================
+      // 4. 반응형 캔버스 크기 계산 및 리사이즈
+      // =========================================
+      function resizeCanvas() {
+        const rect = boardWrapper.getBoundingClientRect();
+        // 프레임 테두리 여백(12px) 제외 후 정사각형 최대 크기 산출
+        const availableSize = Math.floor(Math.min(rect.width - 12, rect.height - 12));
+        // 20칸으로 깔끔하게 나누어떨어지도록 보정 (최소 240px)
+        const snappedSize = Math.max(240, Math.floor(availableSize / GRID_SIZE) * GRID_SIZE);
+
+        const dpr = window.devicePixelRatio || 1;
+        canvas.style.width = snappedSize + 'px';
+        canvas.style.height = snappedSize + 'px';
+        canvas.width = snappedSize * dpr;
+        canvas.height = snappedSize * dpr;
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        render();
+      }
+
+      // =========================================
+      // 5. 게임 초기화 및 먹이 생성
+      // =========================================
+      function resetGameData() {
+        // 중앙 왼쪽 부근에서 길이 3인 뱀으로 시작
+        state.snake = [
+          { x: 6, y: 10 },
+          { x: 5, y: 10 },
+          { x: 4, y: 10 }
+        ];
+        state.currentDir = 'RIGHT';
+        state.inputQueue = [];
+        state.score = 0;
+        currentScoreEl.textContent = '0';
+        spawnFood();
+      }
+
+      function spawnFood() {
+        const emptyCells = [];
+        for (let y = 0; y < GRID_SIZE; y++) {
+          for (let x = 0; x < GRID_SIZE; x++) {
+            const occupied = state.snake.some(seg => seg.x === x && seg.y === y);
+            if (!occupied) {
+              emptyCells.push({ x, y });
+            }
+          }
+        }
+
+        if (emptyCells.length > 0) {
+          const randomIndex = Math.floor(Math.random() * emptyCells.length);
+          state.food = emptyCells[randomIndex];
+        }
+      }
+
+      // =========================================
+      // 6. 방향 입력 처리 (즉시 반대 방향 및 연타 방어)
+      // =========================================
+      function enqueueDirection(newDirKey) {
+        if (!DIRECTIONS[newDirKey]) return;
+
+        // 대기(READY) 상태에서 방향키를 누르면 바로 게임 시작
+        if (state.status === 'READY') {
+          startGame();
+        }
+
+        if (state.status !== 'PLAYING') return;
+
+        // 기준이 될 마지막 예정 방향 확인 (큐에 입력이 있으면 마지막 큐 항목, 없으면 현재 진행 방향)
+        const lastPlannedDir =
+          state.inputQueue.length > 0
+            ? state.inputQueue[state.inputQueue.length - 1]
+            : state.currentDir;
+
+        // 동일한 방향 중복 입력 무시
+        if (newDirKey === lastPlannedDir) return;
+
+        // 180도 정반대 방향 입력 무시 (자신의 몸과 즉시 충돌하는 현상 방지)
+        if (DIRECTIONS[lastPlannedDir].opposite === newDirKey) return;
+
+        // 최대 2스텝까지 빠른 연타 버퍼링 (예: 우측 이동 중 '위 -> 왼쪽'을 빠르게 연타 시 정확히 U턴)
+        if (state.inputQueue.length < 2) {
+          state.inputQueue.push(newDirKey);
+        }
+      }
+
+      // =========================================
+      // 7. 게임 상태 전환 (시작 / 일시정지 / 재시작 / 종료)
+      // =========================================
+      function updateUIControls() {
+        if (state.status === 'READY') {
+          startBtn.disabled = false;
+          startBtn.textContent = '게임 시작';
+          pauseBtn.disabled = true;
+          pauseBtn.textContent = '일시정지';
+        } else if (state.status === 'PLAYING') {
+          startBtn.disabled = true;
+          pauseBtn.disabled = false;
+          pauseBtn.textContent = '일시정지';
+          hideOverlay();
+        } else if (state.status === 'PAUSED') {
+          startBtn.disabled = true;
+          pauseBtn.disabled = false;
+          pauseBtn.textContent = '계속하기';
+          showOverlay(
+            'PAUSED',
+            false,
+            '일시정지',
+            '게임이 잠시 멈췄습니다.\n계속하기 버튼을 눌러 이어서 플레이하세요.',
+            null,
+            '계속하기'
+          );
+        } else if (state.status === 'GAMEOVER') {
+          startBtn.disabled = false;
+          startBtn.textContent = '게임 시작';
+          pauseBtn.disabled = true;
+          pauseBtn.textContent = '일시정지';
+          showOverlay(
+            'GAME OVER',
+            true,
+            '게임 종료!',
+            '벽이나 자신의 몸에 부딪혔습니다.',
+            `최종 점수: ${state.score}점`,
+            '다시 도전하기'
+          );
+        }
+      }
+
+      function showOverlay(badgeText, isDanger, title, desc, scoreText, btnText) {
+        overlayBadge.textContent = badgeText;
+        overlayBadge.className = isDanger ? 'overlay-badge danger' : 'overlay-badge';
+        overlayTitle.textContent = title;
+        overlayDesc.innerHTML = desc.replace(/\n/g, '<br />');
+
+        if (scoreText) {
+          overlayScore.textContent = scoreText;
+          overlayScore.style.display = 'block';
+        } else {
+          overlayScore.style.display = 'none';
+        }
+
+        overlayActionBtn.textContent = btnText;
+        gameOverlay.classList.remove('hidden');
+      }
+
+      function hideOverlay() {
+        gameOverlay.classList.add('hidden');
+      }
+
+      function startGame() {
+        if (state.status === 'GAMEOVER' || state.status === 'READY') {
+          resetGameData();
+        }
+        state.status = 'PLAYING';
+        state.lastTickTime = performance.now();
+        updateUIControls();
+      }
+
+      function togglePause() {
+        if (state.status === 'PLAYING') {
+          state.status = 'PAUSED';
+          updateUIControls();
+        } else if (state.status === 'PAUSED') {
+          state.status = 'PLAYING';
+          state.lastTickTime = performance.now();
+          updateUIControls();
+        }
+      }
+
+      function restartGame() {
+        resetGameData();
+        state.status = 'PLAYING';
+        state.lastTickTime = performance.now();
+        updateUIControls();
+        render();
+      }
+
+      function handleGameOver() {
+        state.status = 'GAMEOVER';
+        saveHighScore(state.score);
+        updateUIControls();
+      }
+
+      // =========================================
+      // 8. 게임 로직 업데이트 (1 틱 단위 이동 및 충돌 판정)
+      // =========================================
+      function stepGame() {
+        // 입력 큐에서 다음 유효 방향 꺼내기
+        if (state.inputQueue.length > 0) {
+          state.currentDir = state.inputQueue.shift();
+        }
+
+        const dirVector = DIRECTIONS[state.currentDir];
+        const head = state.snake[0];
+        const nextHead = {
+          x: head.x + dirVector.x,
+          y: head.y + dirVector.y
+        };
+
+        // 1) 벽 충돌 검사
+        if (
+          nextHead.x < 0 ||
+          nextHead.x >= GRID_SIZE ||
+          nextHead.y < 0 ||
+          nextHead.y >= GRID_SIZE
+        ) {
+          handleGameOver();
+          return;
+        }
+
+        // 먹이를 먹는지 여부 미리 확인 (꼬리가 줄어들 칸으로 이동하는 경우 허용하기 위함)
+        const willEatFood = nextHead.x === state.food.x && nextHead.y === state.food.y;
+        const bodyToCheck = willEatFood ? state.snake : state.snake.slice(0, -1);
+
+        // 2) 자기 몸 충돌 검사
+        const hitSelf = bodyToCheck.some(
+          seg => seg.x === nextHead.x && seg.y === nextHead.y
+        );
+        if (hitSelf) {
+          handleGameOver();
+          return;
+        }
+
+        // 3) 뱀 머리 전진
+        state.snake.unshift(nextHead);
+
+        if (willEatFood) {
+          // 먹이 획득: 꼬리 유지(길이 +1), 점수 +10, 새 먹이 생성
+          state.score += POINTS_PER_FOOD;
+          currentScoreEl.textContent = state.score;
+          saveHighScore(state.score);
+          spawnFood();
+        } else {
+          // 일반 이동: 꼬리 제거
+          state.snake.pop();
+        }
+      }
+
+      // =========================================
+      // 9. 화면 렌더링 (격자, 먹이, 초록색 뱀)
+      // =========================================
+      function drawRoundedRect(x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+      }
+
+      function render() {
+        const displaySize = parseFloat(canvas.style.width) || 320;
+        const cellSize = displaySize / GRID_SIZE;
+
+        // 배경 초기화
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, displaySize, displaySize);
+
+        // 20x20 은은한 격자선 그리기
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i < GRID_SIZE; i++) {
+          const pos = Math.round(i * cellSize) + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(pos, 0);
+          ctx.lineTo(pos, displaySize);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(0, pos);
+          ctx.lineTo(displaySize, pos);
+          ctx.stroke();
+        }
+
+        // 먹이 그리기 (빛나는 아케이드 사과/오브 스타일)
+        if (state.food) {
+          const fx = state.food.x * cellSize + cellSize / 2;
+          const fy = state.food.y * cellSize + cellSize / 2;
+          const pulse = Math.sin(state.pulsePhase) * (cellSize * 0.05);
+          const foodRadius = cellSize * 0.36 + pulse;
+
+          ctx.save();
+          ctx.shadowColor = 'rgba(249, 115, 22, 0.85)';
+          ctx.shadowBlur = 12;
+
+          const grad = ctx.createRadialGradient(
+            fx - foodRadius * 0.3,
+            fy - foodRadius * 0.3,
+            foodRadius * 0.1,
+            fx,
+            fy,
+            foodRadius
+          );
+          grad.addColorStop(0, '#fde047');
+          grad.addColorStop(0.45, '#f97316');
+          grad.addColorStop(1, '#dc2626');
+
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(fx, fy, Math.max(4, foodRadius), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 초록색 뱀 그리기 (꼬리부터 머리 순으로 렌더링)
+        const total = state.snake.length;
+        for (let i = total - 1; i >= 0; i--) {
+          const seg = state.snake[i];
+          const isHead = i === 0;
+          const padding = isHead ? 1.2 : 2.0;
+          const x = seg.x * cellSize + padding;
+          const y = seg.y * cellSize + padding;
+          const size = cellSize - padding * 2;
+          const radius = isHead ? cellSize * 0.32 : cellSize * 0.25;
+
+          ctx.save();
+          if (isHead) {
+            ctx.shadowColor = 'rgba(34, 197, 94, 0.6)';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#4ade80';
+          } else {
+            // 꼬리로 갈수록 자연스럽게 깊어지는 초록색 그라데이션
+            const ratio = i / Math.max(1, total);
+            const greenVal = Math.round(197 - ratio * 65);
+            ctx.fillStyle = `rgb(22, ${greenVal}, 74)`;
+          }
+
+          drawRoundedRect(x, y, size, size, radius);
+          ctx.fill();
+
+          // 머리 눈(Eyes) 디테일 추가
+          if (isHead) {
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#052e16';
+            const eyeSize = Math.max(2, cellSize * 0.11);
+            const cx = seg.x * cellSize + cellSize / 2;
+            const cy = seg.y * cellSize + cellSize / 2;
+            const offsetForward = cellSize * 0.2;
+            const offsetSide = cellSize * 0.2;
+
+            let eye1 = { x: cx, y: cy };
+            let eye2 = { x: cx, y: cy };
+
+            if (state.currentDir === 'RIGHT') {
+              eye1 = { x: cx + offsetForward, y: cy - offsetSide };
+              eye2 = { x: cx + offsetForward, y: cy + offsetSide };
+            } else if (state.currentDir === 'LEFT') {
+              eye1 = { x: cx - offsetForward, y: cy - offsetSide };
+              eye2 = { x: cx - offsetForward, y: cy + offsetSide };
+            } else if (state.currentDir === 'UP') {
+              eye1 = { x: cx - offsetSide, y: cy - offsetForward };
+              eye2 = { x: cx + offsetSide, y: cy - offsetForward };
+            } else if (state.currentDir === 'DOWN') {
+              eye1 = { x: cx - offsetSide, y: cy + offsetForward };
+              eye2 = { x: cx + offsetSide, y: cy + offsetForward };
+            }
+
+            ctx.beginPath();
+            ctx.arc(eye1.x, eye1.y, eyeSize, 0, Math.PI * 2);
+            ctx.arc(eye2.x, eye2.y, eyeSize, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.restore();
+        }
+      }
+
+      // =========================================
+      // 10. 메인 애니메이션 루프
+      // =========================================
+      function gameLoop(timestamp) {
+        state.pulsePhase += 0.08;
+
+        if (state.status === 'PLAYING') {
+          if (timestamp - state.lastTickTime >= state.tickInterval) {
+            stepGame();
+            state.lastTickTime = timestamp;
+          }
+        }
+
+        render();
+        state.animationFrameId = requestAnimationFrame(gameLoop);
+      }
+
+      // =========================================
+      // 11. 키보드 & 터치 & 버튼 이벤트 바인딩
+      // =========================================
+      // PC 키보드 방향키 및 단축키
+      window.addEventListener('keydown', function (e) {
+        const keyMap = {
+          ArrowUp: 'UP',
+          KeyW: 'UP',
+          ArrowDown: 'DOWN',
+          KeyS: 'DOWN',
+          ArrowLeft: 'LEFT',
+          KeyA: 'LEFT',
+          ArrowRight: 'RIGHT',
+          KeyD: 'RIGHT'
+        };
+
+        if (keyMap[e.code] || keyMap[e.key]) {
+          e.preventDefault(); // 브라우저 기본 스크롤 방지
+          const dir = keyMap[e.code] || keyMap[e.key];
+          enqueueDirection(dir);
+          highlightDpadButton(dir);
+        } else if (e.code === 'Space') {
+          e.preventDefault();
+          if (state.status === 'PLAYING' || state.status === 'PAUSED') {
+            togglePause();
+          } else if (state.status === 'READY' || state.status === 'GAMEOVER') {
+            startGame();
+          }
+        }
+      });
+
+      // 키보드 입력 시 하단 D-Pad 시각적 피드백 동기화
+      function highlightDpadButton(dir) {
+        const targetBtn = document.querySelector(`.dpad-btn[data-dir="${dir}"]`);
+        if (!targetBtn) return;
+        targetBtn.classList.add('pressed');
+        setTimeout(() => targetBtn.classList.remove('pressed'), 110);
+      }
+
+      // 모바일/태블릿 터치 방향 버튼 (PointerEvent로 터치와 마우스 클릭 통합 처리 및 중복 발화 방지)
+      dpadButtons.forEach(btn => {
+        btn.addEventListener('pointerdown', function (e) {
+          e.preventDefault();
+          const dir = this.getAttribute('data-dir');
+          enqueueDirection(dir);
+        });
+      });
+
+      // 난이도 선택 버튼
+      diffButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+          diffButtons.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          state.tickInterval = parseInt(this.getAttribute('data-speed'), 10);
+          // 버튼 포커스 해제 (스페이스바 오작동 방지)
+          this.blur();
+        });
+      });
+
+      // 상단 제어 버튼 이벤트
+      startBtn.addEventListener('click', function () {
+        startGame();
+        this.blur();
+      });
+
+      pauseBtn.addEventListener('click', function () {
+        togglePause();
+        this.blur();
+      });
+
+      restartBtn.addEventListener('click', function () {
+        restartGame();
+        this.blur();
+      });
+
+      // 오버레이 내부 액션 버튼
+      overlayActionBtn.addEventListener('click', function () {
+        if (state.status === 'PAUSED') {
+          togglePause();
+        } else {
+          startGame();
+        }
+      });
+
+      // 화면 회전 및 크기 변경 대응
+      window.addEventListener('resize', resizeCanvas);
+
+      // =========================================
+      // 12. 앱 초기화 및 실행
+      // =========================================
+      window.onload = function () {
+        loadHighScore();
+        resetGameData();
+        updateUIControls();
+        resizeCanvas();
+        state.animationFrameId = requestAnimationFrame(gameLoop);
+      };
+    })();
+  </script>
+</body>
+</html>
